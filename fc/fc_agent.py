@@ -7,8 +7,8 @@ import ast
 from typing import Dict, List
 
 from utils import generate
-from fc_prompts import get_main_prompt, get_response_check_prompt
-from tools import TOOL_REGISTRY, prompts as tool_prompts
+from fc.fc_prompts import get_main_prompt, get_response_check_prompt
+from fc.tools import TOOL_REGISTRY, prompts as tool_prompts
 
 
 class ToolCallingAgent:
