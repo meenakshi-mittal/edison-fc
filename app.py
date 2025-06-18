@@ -28,10 +28,13 @@ def load_course_config(course: str) -> None:
     global prompts
     if 'ds100' in course:
         import prompts.ds100_multiturn_prompts as prompts
+        course = 'ds100'
     elif 'ds8' in course:
         import prompts.ds8_multiturn_prompts as prompts
+        course = 'ds8'
     elif 'cs61a' in course:
         import prompts.cs61a_multiturn_prompts as prompts
+        course = 'cs61a'
     else:
         raise ValueError(f"Unsupported course: {course}")
     load_dotenv(f'configs/{course}.env', override=True)
