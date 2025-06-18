@@ -17,6 +17,13 @@ from utils import (
 )
 from fc.fc_agent import ToolCallingAgent
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from poll import run
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(run, 'interval', hours=1)
+scheduler.start()
+
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
