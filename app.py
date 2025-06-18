@@ -57,8 +57,9 @@ def edison_fc():
     # if not question_category:
     #     return jsonify(error="Bad Request: No category specified"), 400
 
+    # input_dict["title"] = xml_to_markdown(unescape(input_dict.get("thread_title", "")))
     fields = ["thread_title", "category", "subcategory", "subsubcategory"]
-    metadata = [xml_to_markdown(unescape(input_dict.get(f, ""))) for f in fields]
+    metadata = [input_dict.get(f, "") for f in fields]
     metadata_str = " | ".join(
         f"{f}: {val}" for f, val in zip(fields, metadata) if val
     )
@@ -109,6 +110,7 @@ def edison_fc():
 
 @app.route("/public", methods=["POST"])
 def public_edison_fc():
+    print("Loaded API_KEY:", os.getenv("API_KEY"))
     if request.headers.get("Authorization") != os.getenv("API_KEY"):
         return jsonify(error="Unauthorized"), 401
 

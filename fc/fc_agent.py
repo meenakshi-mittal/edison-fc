@@ -8,7 +8,7 @@ from typing import Dict, List
 
 from utils import generate
 from fc.fc_prompts import get_main_prompt, get_response_check_prompt
-from fc.tools import TOOL_REGISTRY, prompts as tool_prompts
+from fc.tools import TOOL_REGISTRY
 
 
 class ToolCallingAgent:
@@ -33,11 +33,11 @@ class ToolCallingAgent:
             import prompts.cs61a_multiturn_prompts as pmod
         else:
             raise ValueError(f"Unsupported course: {course}")
-        tool_prompts.__dict__.update(pmod.__dict__)
+        # TOOL_REGISTRY.__dict__.update(pmod.__dict__)
 
     def _generate(self, messages: List[Dict[str, str]]) -> str:
-        full_prompt = "\n\n".join(m["content"] for m in messages)
-        return generate(prompt=full_prompt)
+        # full_prompt = "\n\n".join(m["content"] for m in messages)
+        return generate(prompt=messages)
 
     def _select_tools(self, query: str) -> List[str]:
         chooser_prompt = (
@@ -113,10 +113,9 @@ class ToolCallingAgent:
 
         return {
             "question": query,
-            "answer_0": answer_0,
-            "llm_answer": final_answer,
+            "response_0": answer_0,
+            "response": final_answer,
             **tool_outputs,
             "tools_called": list(arg_dict.items()),
             "num_llm_calls": self.num_calls,
-            "latency": time.time() - time.time()
         }

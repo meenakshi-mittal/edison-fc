@@ -14,7 +14,7 @@ from utils import (
 )
 
 # Global prompt module will be dynamically injected by app.py via load_course_config
-prompts = None
+# prompts = None
 
 
 def qa_retrieval(query: str) -> str:
@@ -39,20 +39,21 @@ def logistics_retrieval(query: str) -> str:
     )
 
 
-def assignment_retrieval(query: str) -> Tuple[str, str, str]:
-    question_category = "assignment"
-    category_mapping = ast.literal_eval(os.getenv("CATEGORY_MAPPING", "{}"))
-    subcategory_mapping = ast.literal_eval(os.getenv("SUBCATEGORY_MAPPING", "{}"))
-
-    problem_list, selected_doc, retrieved_docs = retrieve_docs_manual(
-        question_category=question_category,
-        question_subcategory=None,
-        question_info=re.sub(r"\n+", " ", query),
-        category_mapping=category_mapping,
-        subcategory_mapping=subcategory_mapping,
-        get_prompt=prompts.get_choose_problem_path_prompt,
-    )
-    return problem_list, selected_doc, retrieved_docs
+def assignment_retrieval(query: str):
+    # question_category = "assignment"
+    # category_mapping = ast.literal_eval(os.getenv("CATEGORY_MAPPING", "{}"))
+    # subcategory_mapping = ast.literal_eval(os.getenv("SUBCATEGORY_MAPPING", "{}"))
+    #
+    # problem_list, selected_doc, retrieved_docs = retrieve_docs_manual(
+    #     question_category=question_category,
+    #     question_subcategory=None,
+    #     question_info=re.sub(r"\n+", " ", query),
+    #     category_mapping=category_mapping,
+    #     subcategory_mapping=subcategory_mapping,
+    #     get_prompt=prompts.get_choose_problem_path_prompt,
+    # )
+    # return problem_list, selected_doc, retrieved_docs
+    return "dummy"
 
 
 TOOL_REGISTRY = {
