@@ -104,7 +104,7 @@ def edison_fc():
         reply_to_ed(
             course=course,
             id=input_dict.get("comment_id"),
-            text="edison" + output_dict["llm_answer"],
+            text="edison" + output_dict["response"],
             post_answer=False,
             private=True
         )
