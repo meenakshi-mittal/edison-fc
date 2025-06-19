@@ -132,9 +132,9 @@ def split_document_by_headers(text, headers):
 
     return chunks
 
-def chunk_markdown_file(input_path):
-    print(f"Processing: {input_path}")
-    full_text = read_markdown_file(input_path)
+def chunk_markdown_file(full_text):
+    # print(f"Processing: {input_path}")
+    # full_text = read_markdown_file(input_path)
     sections = split_into_sections(full_text, type='line', section_length=32, overlap=16)
     question_headers = accumulate_question_headers(sections)
     print("Accumulated Question Headers:")

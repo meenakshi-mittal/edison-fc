@@ -9,9 +9,9 @@ logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s -
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-CONTAINER = "edisondata"
-PREFIX_RAW = "ds100-su25/docs_manual/raw/"
-PREFIX_CHUNKS = "ds100-su25/docs_manual/chunks/"
+CONTAINER = "ds100-su25"
+PREFIX_RAW = "docs_manual/raw/"
+PREFIX_CHUNKS = "docs_manual/chunks/"
 
 load_dotenv("keys.env")
 blob_service = BlobServiceClient.from_connection_string(os.getenv("AZURE_STORAGE_CONNECTION_STRING"))
@@ -39,3 +39,6 @@ def run():
         json_filename = filename.replace(".md", ".json")
         chunk_blob = container_client.get_blob_client(f"{PREFIX_CHUNKS}{json_filename}")
         chunk_blob.upload_blob(json.dumps(chunks, indent=2))
+
+if __name__ == "__main__":
+    run()
