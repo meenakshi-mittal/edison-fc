@@ -1,7 +1,7 @@
 import os
 import json
 from azure.storage.blob import BlobServiceClient
-from manual_retrieval.chunking import chunk_markdown_string  # adjust import
+from manual_retrieval.chunking import chunk_markdown_file  # adjust import
 
 CONTAINER = "edisondata"
 PREFIX_RAW = "ds100-su25/docs_manual/raw/"
@@ -27,7 +27,7 @@ def run():
         print(f"Chunking {filename}...")
         md_blob = container_client.get_blob_client(blob.name)
         md_content = md_blob.download_blob().readall().decode("utf-8")
-        chunks = chunk_markdown_string(md_content)
+        chunks = chunk_markdown_file(md_content)
 
         json_filename = filename.replace(".md", ".json")
         chunk_blob = container_client.get_blob_client(f"{PREFIX_CHUNKS}{json_filename}")
