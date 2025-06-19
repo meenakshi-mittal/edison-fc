@@ -132,7 +132,7 @@ def split_document_by_headers(text, headers):
 
     return chunks
 
-def chunk_markdown_file(input_path, output_path):
+def chunk_markdown_file(input_path):
     print(f"Processing: {input_path}")
     full_text = read_markdown_file(input_path)
     sections = split_into_sections(full_text, type='line', section_length=32, overlap=16)
@@ -144,9 +144,10 @@ def chunk_markdown_file(input_path, output_path):
     print(cleaned_headers)
     header_split_chunks = split_document_by_headers(full_text, cleaned_headers)
     chunks = merge_small_chunks(header_split_chunks, min_length=128)
-    with open(output_path, "w", encoding="utf-8") as file:
-        json.dump(chunks, file, indent=4)
-    print(f"Saved header-split chunks to: {output_path}")
+    return chunks
+    # with open(output_path, "w", encoding="utf-8") as file:
+    #     json.dump(chunks, file, indent=4)
+    # print(f"Saved header-split chunks to: {output_path}")
 
 def main(input_dir, output_dir):
 
