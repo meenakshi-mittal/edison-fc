@@ -48,7 +48,7 @@ def get_relevant_files(question, toc):
     messages = [{"role": "system", "content": prompt}]
     gpt_output = safe_generate(messages, temperature=0.1)
 
-    print(gpt_output)
+    # print(gpt_output)
     try:
         file_list = eval(gpt_output)
         if isinstance(file_list, list) and len(file_list) == 3:
@@ -114,9 +114,9 @@ def beam_search_across_blobs(question, file_names, beam_width=3, final_doc_count
         else:
             num_to_select = beam_width
 
-        print(num_to_select)
+        # print(num_to_select)
         example = str(list(range(1, num_to_select+1)))
-        print(example)
+        # print(example)
         prompt = (
             "You are an expert at relevant document selection. "
             f"Here is a student question:\n\"{question}\"\n"
@@ -130,7 +130,7 @@ def beam_search_across_blobs(question, file_names, beam_width=3, final_doc_count
         messages = [{"role": "system", "content": prompt}]
         time.sleep(1)
         gpt_output = safe_generate(messages)
-        print(gpt_output)
+        # print(gpt_output)
         try:
             selected_keys = eval(gpt_output)
             if not isinstance(selected_keys, list):
@@ -166,7 +166,10 @@ def manual_retrieval(question, beam_width=3, final_doc_count=1):
         beam_width=beam_width,
         final_doc_count=final_doc_count
     )
-    return docs, gpt_call_count
+
+    doc_string = f"Retrieved assignment documents\n==========================================\n{docs}"
+
+    return doc_string, gpt_call_count
 
 
 if __name__ == "__main__":
