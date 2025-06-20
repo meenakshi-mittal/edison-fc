@@ -40,3 +40,15 @@ def build_tree_from_chunks(input_file, output_file, tree_dir, branch_factor=3):
     # Update TOC after processing this file
     create_TOC(tree_dir)
     print("TOC updated!")
+
+
+def build_tree(chunks, branch_factor=3):
+    """
+    Accepts a list of string chunks, builds and returns the hierarchy tree as a dict.
+    Used when chunks are already in memory (e.g., from blob download).
+    """
+    if not isinstance(chunks, list):
+        raise ValueError("Chunks must be a list of strings.")
+    filtered = [chunk for chunk in chunks if chunk.strip()]
+    leaf_nodes = generate_leaf_nodes(filtered)
+    return build_balanced_tree(leaf_nodes, branch_factor=branch_factor)
