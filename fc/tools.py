@@ -46,6 +46,22 @@ def assignment_retrieval(query: str):
     return docs
 
 
+TOOL_DEFS = {
+  "qa_retrieval": "For retrieving similar questions and TA answers from past semesters.",
+  "textbook_retrieval": "For retrieving course content from textbooks or course materials.",
+  "assignment_retrieval": "For retrieving assignment materials and solutions.",
+  "logistics_retrieval": "For retrieving course logistics such as deadlines, policies, and schedules."
+}
+
+TOOLS_ARGS = {
+  "qa_retrieval": "Inputs a single argument \"query\".",
+  "textbook_retrieval": "Inputs a single argument \"query\".",
+  "assignment_retrieval": "Inputs a single argument \"query\".",
+  "logistics_retrieval": "Inputs a single argument \"query\"."
+}
+
+
+
 TOOL_REGISTRY = {
     "qa_retrieval": qa_retrieval,
     "textbook_retrieval": textbook_retrieval,
