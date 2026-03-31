@@ -468,27 +468,34 @@ def delete_comment(course: str, id: str) -> None:
 
 
 def reply_to_ed(course: str, id: str, text: str, post_answer: bool, private: bool) -> None:
-    """
-    Reply to a thread on EdStem for a given course.
-
-    Args:
-        course (str): The course identifier.
-        thread_id (str): The ID of the thread to reply to.
-        text (str): The content of the reply.
-        post_answer (bool): Whether to post as an answer or a comment.
-        private (bool): Whether the reply should be private.
-    """
     url = f"https://us.edstem.org/api/{'threads' if post_answer else 'comments'}/{id}/comments"
     payload = {
         "comment": {
             "type": "answer" if post_answer else "comment",
             "content": f"<document version=\"2.0\"><paragraph>{process_markdown(text)}</paragraph></document>",
             "is_private": private,
+            "is_anonymous": False,
         }
     }
     headers = {
-        'Authorization': f'Bearer {get_edstem_token(course)}',
-        'Content-Type': 'application/json'
+        "Authorization": f"Bearer {get_edstem_token(course)}",
+        "Content-Type": "application/json",
     }
-    response = requests.post(url, headers=headers, json=payload)
+
+    response = requests.post(url, headers=headers, json=payload, timeout=30)
+
+    logger.info("Ed URL: %s", url)
+    logger.info("Ed payload: %s", json.dumps(payload, ensure_ascii=False))
+    logger.info("Ed status: %s", response.status_code)
+    logger.info("Ed response text: %s", response.text)
+
+    try:
+        logger.info("Ed response json: %s", json.dumps(response.json(), ensure_ascii=False))
+    except Exception:
+        logger.info("Ed response was not JSON")
+
+    if response.request is not None:
+        logger.info("Prepared request body: %s", response.request.body)
+        logger.info("Prepared request headers: %s", dict(response.request.headers))
+
     response.raise_for_status()
