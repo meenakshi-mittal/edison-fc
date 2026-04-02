@@ -5,6 +5,7 @@ import html
 import time
 import json
 import logging
+import math
 from pathlib import Path
 from typing import List, Dict, Any, Callable
 from datetime import datetime
@@ -320,6 +321,110 @@ def retrieve_docs_manual(question_category: str, category_mapping: dict, questio
     return str(problem_paths_list), selected_path, retrieved_docs
 
 
+def _cosine_similarity(a: List[float], b: List[float]) -> float:
+    if not a or not b or len(a) != len(b):
+        return 0.0
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = math.sqrt(sum(x * x for x in a))
+    norm_b = math.sqrt(sum(y * y for y in b))
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    return dot / (norm_a * norm_b)
+
+
+def retrieve_docs_manual_chunks(
+    question_category: str,
+    category_mapping: dict,
+    question_subcategory: str,
+    subcategory_mapping: dict,
+    question_info: str,
+    get_prompt: Callable[[List, str], List],
+    chunk_top_k: int = 4
+) -> tuple:
+    """
+    Retrieve and return the most relevant chunks of a specific document from Azure Blob Storage.
+    """
+    problem_paths_list: List[str] = []
+    path_prefix_mode = "category"
+    base_dir = ""
+    if question_category in category_mapping:
+        base_dir = category_mapping[question_category]
+        problem_paths_list = get_file_names_dir(f"docs_manual/chunks/{base_dir}")
+    elif question_subcategory in subcategory_mapping:
+        base_dir = subcategory_mapping[question_subcategory]
+        problem_paths_list = get_file_names_dir(f"docs_manual/chunks/{base_dir}")
+    else:
+        all_dirs = set(category_mapping.values()) | set(subcategory_mapping.values())
+        for directory in all_dirs:
+            for path in get_file_names_dir(f"docs_manual/chunks/{directory}"):
+                problem_paths_list.append(f"{directory}/{path}")
+        path_prefix_mode = "full"
+
+    if not problem_paths_list:
+        return "none", "none", "none"
+
+    display_paths = problem_paths_list
+    if base_dir:
+        prefix = f"{base_dir}/"
+        display_paths = [
+            p[len(prefix):] if p.startswith(prefix) else p
+            for p in problem_paths_list
+        ]
+
+    prompt = get_prompt(
+        paths="\n".join(display_paths),
+        question_info=re.sub(pattern=r"\n+", repl=" ", string=question_info)
+    )
+    processed_question = generate(prompt=prompt)
+
+    try:
+        processed_question = ast.literal_eval(processed_question)
+        selected_path = processed_question["selected_path"]
+    except Exception as e:
+        logger.error(f"Error processing question: {e}")
+        logger.error(f"Processed question: {processed_question}")
+        selected_path = "none"
+
+    retrieved_docs = "none"
+    if selected_path != "none":
+        try:
+            blob_service_client = BlobServiceClient.from_connection_string(os.getenv("AZURE_STORAGE_CONNECTION_STRING"))
+            container_client = blob_service_client.get_container_client(os.getenv("AZURE_BLOB_CONTAINER_NAME"))
+            if path_prefix_mode == "full":
+                selected_blob_path = selected_path
+            elif base_dir and not selected_path.startswith(f"{base_dir}/"):
+                selected_blob_path = f"{base_dir}/{selected_path}"
+            else:
+                selected_blob_path = selected_path
+            blob_path = f"docs_manual/chunks/{selected_blob_path}"
+            blob_client = container_client.get_blob_client(blob_path)
+            if not blob_client.exists():
+                raise FileNotFoundError("Blob does not exist in the container.")
+            chunk_list = json.loads(blob_client.download_blob().readall().decode("utf-8"))
+
+            if not isinstance(chunk_list, list) or not chunk_list:
+                retrieved_docs = "none"
+            else:
+                query_embedding = embed_text(question_info, model_name=os.getenv("EMBEDDING_MODEL_NAME"))
+                scored = []
+                for chunk in chunk_list:
+                    if not isinstance(chunk, str) or not chunk.strip():
+                        continue
+                    chunk_embedding = embed_text(chunk, model_name=os.getenv("EMBEDDING_MODEL_NAME"))
+                    score = _cosine_similarity(query_embedding, chunk_embedding)
+                    scored.append((score, chunk))
+                scored.sort(key=lambda x: x[0], reverse=True)
+                top_chunks = [chunk for _, chunk in scored[:chunk_top_k]]
+                retrieved_docs = "Retrieved manual chunks" + "".join(
+                    f"\n==========================================\n{chunk}" for chunk in top_chunks
+                )
+        except Exception as e:
+            retrieved_docs = "none (error)"
+            logger.error(f"Error retrieving manual chunks: {e} (selected path: {selected_path})")
+
+    return str(problem_paths_list), selected_path, retrieved_docs
+
+
 def log_local(log_dict: Dict[str, Any], file_path: str) -> None:
     """
     Save a log entry by combining input and output dictionaries and appending it to a file.
@@ -469,34 +574,27 @@ def delete_comment(course: str, id: str) -> None:
 
 
 def reply_to_ed(course: str, id: str, text: str, post_answer: bool, private: bool) -> None:
+    """
+    Reply to a thread on EdStem for a given course.
+
+    Args:
+        course (str): The course identifier.
+        thread_id (str): The ID of the thread to reply to.
+        text (str): The content of the reply.
+        post_answer (bool): Whether to post as an answer or a comment.
+        private (bool): Whether the reply should be private.
+    """
     url = f"https://us.edstem.org/api/{'threads' if post_answer else 'comments'}/{id}/comments"
     payload = {
         "comment": {
             "type": "answer" if post_answer else "comment",
             "content": f"<document version=\"2.0\"><paragraph>{process_markdown(text)}</paragraph></document>",
             "is_private": private,
-            "is_anonymous": False,
         }
     }
     headers = {
-        "Authorization": f"Bearer {get_edstem_token(course)}",
-        "Content-Type": "application/json",
+        'Authorization': f'Bearer {get_edstem_token(course)}',
+        'Content-Type': 'application/json'
     }
-
-    response = requests.post(url, headers=headers, json=payload, timeout=30)
-
-    logger.info("Ed URL: %s", url)
-    logger.info("Ed payload: %s", json.dumps(payload, ensure_ascii=False))
-    logger.info("Ed status: %s", response.status_code)
-    logger.info("Ed response text: %s", response.text)
-
-    try:
-        logger.info("Ed response json: %s", json.dumps(response.json(), ensure_ascii=False))
-    except Exception:
-        logger.info("Ed response was not JSON")
-
-    if response.request is not None:
-        logger.info("Prepared request body: %s", response.request.body)
-        logger.info("Prepared request headers: %s", dict(response.request.headers))
-
+    response = requests.post(url, headers=headers, json=payload)
     response.raise_for_status()

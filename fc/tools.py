@@ -1,10 +1,6 @@
 # tools.py
 
 import os
-import re
-import ast
-from typing import Tuple
-
 from utils import (
     retrieve_qa,
     retrieve_docs_hybrid,

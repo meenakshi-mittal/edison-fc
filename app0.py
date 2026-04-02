@@ -12,6 +12,7 @@ from utils import (
     retrieve_qa,
     retrieve_docs_hybrid,
     retrieve_docs_manual,
+    retrieve_docs_manual_chunks,
     generate,
     log_blob,
     log_local,
@@ -73,9 +74,13 @@ def edison():
     worksheet_categories = get_env_list('WORKSHEET_CATEGORIES')
 
     # Conversation processing (OCR)
+    fields = ["thread_title", "category", "subcategory", "subsubcategory"]
+    metadata = [input_dict.get(f, "") for f in fields]
+    metadata_str = " | ".join(f"{f}: {val}" for f, val in zip(fields, metadata) if val)
+    logger.info("Metadata string: %s", metadata_str)
     processed_conversation = ocr_process_input(
-        thread_title=input_dict.get('thread_title'),
-        conversation_history=input_dict.get('conversation_history'),
+        metadata=metadata_str,
+        conversation_history=input_dict.get("conversation_history") or []
     )
     logger.info('Processed conversation: %s', processed_conversation)
 
@@ -117,9 +122,41 @@ def edison():
 
     # Manual document retrieval
     problem_list_manual = selected_doc_manual = retrieved_docs_manual = 'none'
-    if question_category in (assignment_categories + worksheet_categories):
-        question_info = re.sub(r"\n+", " ", f"{question_category} {input_dict.get('subcategory')} {input_dict.get('subsubcategory')} {input_dict.get('thread_title')} \
-                               {processed_conversation[-1]['text'] if len(processed_conversation) <= 2 else processed_conversation[0]['text'] + processed_conversation[-1]['text']}")
+    if question_category in assignment_categories:
+        question_info = re.sub(
+            r"\n+",
+            " ",
+            f"{question_category} "
+            f"{input_dict.get('assignment', '')} "
+            f"{input_dict.get('question', '')} "
+            f"{input_dict.get('description', '')} "
+            f"{processed_conversation[-1]['text'] if len(processed_conversation) <= 2 else processed_conversation[0]['text'] + processed_conversation[-1]['text']}"
+        )
+        problem_list_manual, selected_doc_manual, retrieved_docs_manual = retrieve_docs_manual_chunks(
+            question_category=question_category,
+            category_mapping=ast.literal_eval(os.getenv('CATEGORY_MAPPING', '{}')),
+            question_subcategory=input_dict.get('subcategory'),
+            subcategory_mapping=ast.literal_eval(os.getenv('SUBCATEGORY_MAPPING', '{}')),
+            question_info=question_info,
+            get_prompt=prompts.get_choose_problem_path_prompt,
+            chunk_top_k=int(os.getenv("MANUAL_CHUNKS_TOP_K", "4"))
+        )
+        logger.info('List of problems: %s', problem_list_manual)
+        logger.info('Selected manual document: %s', selected_doc_manual)
+        logger.info('Retrieved manual chunks: %s', retrieved_docs_manual)
+        # Tree-based manual retrieval (preserved for future use):
+        # from manual_retrieval.tree_retrieval import manual_retrieval
+        # retrieved_docs_manual, _ = manual_retrieval(question_info, beam_width=3, final_doc_count=1)
+    elif question_category in worksheet_categories:
+        question_info = re.sub(
+            r"\n+",
+            " ",
+            f"{question_category} "
+            f"{input_dict.get('assignment', '')} "
+            f"{input_dict.get('question', '')} "
+            f"{input_dict.get('description', '')} "
+            f"{processed_conversation[-1]['text'] if len(processed_conversation) <= 2 else processed_conversation[0]['text'] + processed_conversation[-1]['text']}"
+        )
         problem_list_manual, selected_doc_manual, retrieved_docs_manual = retrieve_docs_manual(
             question_category=question_category,
             category_mapping=ast.literal_eval(os.getenv('CATEGORY_MAPPING', '{}')),
