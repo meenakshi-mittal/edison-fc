@@ -238,8 +238,14 @@ def edison():
         log_local({"inputs": input_dict, "outputs": output_dict}, log_path_local)
 
     if input_dict.get('post_comment') == 'true':
-        reply_to_ed(course=course, id=input_dict.get('comment_id'), text='edison'+response, post_answer=False, private=True)
-    
+        reply_to_ed(
+            course=course,
+            id=input_dict.get('comment_id'),
+            text='edison' + response,
+            post_answer=False,
+            private=True
+        )
+
     return jsonify(output_dict)
 
 
